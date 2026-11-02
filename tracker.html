@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybernetic Habit Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Asap:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #080808;
+            --bg-end: #141414;
+            --accent: #ff6b00;
+            --accent-dim: rgba(255, 107, 0, 0.2);
+            --accent-glow: rgba(255, 107, 0, 0.4);
+            --text-main: #e8e8e8;
+            --text-muted: #777777;
+            --panel-bg: rgba(20, 20, 20, 0.6);
+            --panel-border: rgba(255, 107, 0, 0.15);
+            --danger: #ff3333;
+            --success: #ff6b00;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Asap', sans-serif;
+            font-weight: 300;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end)) fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.45;
+            mix-blend-mode: soft-light;
+            will-change: opacity;
+
+            background:
+                /* Scanlines */
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0 2px,
+                    rgba(0, 0, 0, 0.12) 2px 3px
+                ),
+
+                /* RGB subpixel tint */
+                repeating-linear-gradient(
+                    to right,
+                    rgba(255, 0, 0, 0.025) 0 1px,
+                    rgba(0, 255, 0, 0.015) 1px 2px,
+                    rgba(0, 128, 255, 0.025) 2px 3px
+                ),
+
+                /* Subtle vignette */
+                radial-gradient(
+                    circle,
+                    transparent 55%,
+                    rgba(0, 0, 0, 0.18) 100%
+                );
+        }
+        /* Header */
+        header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--panel-border);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-weight: 400;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+        /* Custom Neon Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-start);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-main);
+        }
+        
+
+        .export-btn {
+            background: none;
+            border: 1px solid var(--panel-border);
+            color: var(--accent);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .export-btn:hover {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .export-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Main Container */
+        main {
+            width: 100%;
+            max-width: 800px;
+            padding: 0 1.5rem;
+            flex: 1;
+        }
+
+        /* Date Navigator */
+        .date-navigator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 1rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: 0.3s;
+            padding: 0 1rem;
+            font-family: 'Asap', sans-serif;
+        }
+        
+        .nav-btn:disabled {
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.3;
+        }
+
+        .nav-btn:not(:disabled):hover {
+            text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .current-date-display {
+            text-align: center;
+        }
+
+        .date-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .date-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .task-item:hover {
+            border-color: var(--accent-dim);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .task-item.status-completed {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(255, 107, 0, 0.1);
+        }
+        
+        .task-item.status-failed {
+            opacity: 0.6;
+            border-color: #333;
+        }
+
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            margin-right: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+
+        .read-only .task-checkbox {
+            cursor: default;
+        }
+
+        .task-item.status-completed .task-checkbox {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .task-item.status-failed .task-checkbox {
+            border-color: var(--text-muted);
+            background: transparent;
+        }
+        
+        .task-item.status-failed .task-checkbox::after {
+            content: '×';
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 1.05rem;
+            line-height: 1.4;
+            transition: 0.3s;
+        }
+
+        .task-item.status-completed .task-text {
+            color: var(--accent);
+        }
+
+        .task-item.status-failed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+        }
+
+        .delete-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* Add Task Form */
+        .add-task-form {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .add-task-input {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 1rem 1.2rem;
+            border-radius: 6px;
+            font-family: 'Asap', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .add-task-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .add-task-btn {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Asap', sans-serif;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+
+        .add-task-btn:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Monthly Report */
+        .report-section {
+            margin-top: 2rem;
+            margin-bottom: 4rem;
+            border-top: 1px solid var(--panel-border);
+            padding-top: 2rem;
+        }
+
+        .report-title {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .month-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            transition: width 1s ease;
+        }
+
+        .month-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .stat-item span {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--bg-end);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(255,107,0,0.15);
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: 0.3s;
+        }
+
+        .close-modal:hover {
+            color: var(--accent);
+        }
+
+        .modal h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input[type="date"] {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.8rem;
+            border-radius: 4px;
+            font-family: 'Asap', sans-serif;
+            outline: none;
+            color-scheme: dark;
+        }
+
+        .form-group input[type="date"]:focus {
+            border-color: var(--accent);
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Asap', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+
+        .btn-full:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Read-only mode styling */
+        .read-only-badge {
+            display: none;
+            text-align: center;
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        body.is-read-only .add-task-form {
+            display: none;
+        }
+        body.is-read-only .delete-btn {
+            display: none;
+        }
+        body.is-read-only .read-only-badge {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ROUTINE TRACKER</h1>
+        <button class="export-btn" id="exportBtn" title="Export Data">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        </button>
+    </header>
+
+    <main>
+        <div class="date-navigator">
+            <button class="nav-btn" id="prevDayBtn">&lt;</button>
+            <div class="current-date-display">
+                <div class="date-title" id="dateTitle">Today</div>
+                <div class="date-subtitle" id="dateSubtitle">Monday, Jan 1</div>
+            </div>
+            <button class="nav-btn" id="nextDayBtn">&gt;</button>
+        </div>
+
+        <div class="read-only-badge">Read-Only Mode: Past Day Record</div>
+
+        <ul class="task-list" id="taskList">
+            <!-- Tasks will be injected here -->
+        </ul>
+
+        <form class="add-task-form" id="addTaskForm">
+            <input type="text" id="taskInput" class="add-task-input" placeholder="Initiate new sequence..." required autocomplete="off">
+            <button type="submit" class="add-task-btn">Add</button>
+        </form>
+
+        <section class="report-section">
+            <div class="report-title">YOUR MONTHLY CATCHUP</div>
+            
+            <!-- Added Month Navigator -->
+            <div class="date-navigator" style="margin-bottom: 1rem;">
+                <button class="nav-btn" id="prevMonthBtn" title="Older Months">&lt;</button>
+                <div class="current-date-display">
+                    <div class="date-title" id="monthTitle">MONTH</div>
+                    <div class="date-subtitle" id="monthSubtitle">YEAR</div>
+                </div>
+                <button class="nav-btn" id="nextMonthBtn" title="Newer Months">&gt;</button>
+            </div>
+
+            <div id="monthlyReportContainer">
+                <!-- Single monthly report injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <button class="close-modal" id="closeExportModal">&times;</button>
+            <h2>Export Cybernetic Log</h2>
+            <div class="form-group">
+                <label for="exportStart">Start Date</label>
+                <input type="date" id="exportStart">
+            </div>
+            <div class="form-group">
+                <label for="exportEnd">End Date</label>
+                <input type="date" id="exportEnd">
+            </div>
+            <button class="btn-full" id="confirmExportBtn">Generate Markdown</button>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'cyberTrackerData';
+        let trackerData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        
+        const DEFAULT_TASKS = [
+            "YOU CAN EDIT THESE TO ADD RECURRING TASKS",
+            "2ND example"
+        ];
+
+        let currentViewDate = getLocalDateString();
+
+        function getLocalDateString(dateObj = new Date()) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function getLocalDateObj(dateString) {
+            const [y, m, d] = dateString.split('-');
+            return new Date(y, m - 1, d);
+        }
+
+        function formatDateDisplay(dateString) {
+            const d = getLocalDateObj(dateString);
+            const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
+            return d.toLocaleDateString('en-US', options);
+        }
+
+        function addDays(dateString, days) {
+            const d = getLocalDateObj(dateString);
+            d.setDate(d.getDate() + days);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(trackerData));
+        }
+
+        function enforceMidnightCrossover() {
+            const today = getLocalDateString();
+            let modified = false;
+
+            for (const date in trackerData) {
+                if (date < today) {
+                    trackerData[date].forEach(task => {
+                        if (task.status === 'pending') {
+                            task.status = 'failed';
+                            modified = true;
+                        }
+                    });
+                }
+            }
+            if (modified) saveData();
+        }
+
+        function initDay(dateString) {
+            if (!trackerData[dateString]) {
+                trackerData[dateString] = DEFAULT_TASKS.map(text => ({
+                    id: generateId(),
+                    text: text,
+                    status: 'pending'
+                }));
+                saveData();
+            }
+        }
+
+        function renderApp() {
+            enforceMidnightCrossover();
+            const today = getLocalDateString();
+            
+            if (currentViewDate === today) {
+                initDay(currentViewDate);
+            }
+
+            const isReadOnly = currentViewDate < today;
+            if (isReadOnly) {
+                document.body.classList.add('is-read-only');
+            } else {
+                document.body.classList.remove('is-read-only');
+            }
+
+            document.getElementById('dateTitle').innerText = currentViewDate === today ? "TODAY" : currentViewDate;
+            document.getElementById('dateSubtitle').innerText = formatDateDisplay(currentViewDate);
+            document.getElementById('nextDayBtn').disabled = currentViewDate >= today;
+
+            renderTasks();
+            renderMonthlyReport();
+        }
+
+        function renderTasks() {
+            const listEl = document.getElementById('taskList');
+            listEl.innerHTML = '';
+            
+            const tasks = trackerData[currentViewDate] || [];
+            const isReadOnly = currentViewDate < getLocalDateString();
+
+            if (tasks.length === 0) {
+                listEl.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-style: italic;">No tasks logged for this cycle.</p>`;
+                return;
+            }
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = `task-item status-${task.status}`;
+                
+                const trashIcon = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+
+                li.innerHTML = `
+                    <div class="task-checkbox" data-id="${task.id}"></div>
+                    <div class="task-text">${task.text}</div>
+                    <button class="delete-btn" data-id="${task.id}" title="Remove Task">${trashIcon}</button>
+                `;
+                
+                if (!isReadOnly) {
+                    const cb = li.querySelector('.task-checkbox');
+                    cb.addEventListener('click', () => toggleTask(task.id));
+
+                    const delBtn = li.querySelector('.delete-btn');
+                    delBtn.addEventListener('click', () => deleteTask(task.id));
+                }
+
+                listEl.appendChild(li);
+            });
+        }
+
+        function toggleTask(id) {
+            const today = getLocalDateString();
+            if (currentViewDate !== today) return;
+
+            const tasks = trackerData[currentViewDate];
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.status = task.status === 'pending' ? 'completed' : 'pending';
+                saveData();
+                renderTasks();
+                renderMonthlyReport();
+            }
+        }
+
+        function deleteTask(id) {
+            const today = getLocalDateString();
+            if (currentViewDate !== today) return;
+
+            trackerData[currentViewDate] = trackerData[currentViewDate].filter(t => t.id !== id);
+            saveData();
+            renderTasks();
+            renderMonthlyReport();
+        }
+
+        document.getElementById('addTaskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const today = getLocalDateString();
+            if (currentViewDate !== today) return;
+
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                initDay(today);
+                trackerData[today].push({
+                    id: generateId(),
+                    text: text,
+                    status: 'pending'
+                });
+                saveData();
+                input.value = '';
+                renderApp();
+            }
+        });
+
+        document.getElementById('prevDayBtn').addEventListener('click', () => {
+            currentViewDate = addDays(currentViewDate, -1);
+            renderApp();
+        });
+
+        document.getElementById('nextDayBtn').addEventListener('click', () => {
+            const today = getLocalDateString();
+            if (currentViewDate < today) {
+                currentViewDate = addDays(currentViewDate, 1);
+                renderApp();
+            }
+        });
+
+        let availableMonths = [];
+        let currentMonthIndex = 0;
+
+        function renderMonthlyReport() {
+            const container = document.getElementById('monthlyReportContainer');
+            container.innerHTML = '';
+
+            const statsByMonth = {};
+
+            for (const date in trackerData) {
+                const monthKey = date.substring(0, 7);
+                if (!statsByMonth[monthKey]) {
+                    statsByMonth[monthKey] = { total: 0, completed: 0, failed: 0 };
+                }
+                trackerData[date].forEach(t => {
+                    statsByMonth[monthKey].total++;
+                    if (t.status === 'completed') statsByMonth[monthKey].completed++;
+                    if (t.status === 'failed') statsByMonth[monthKey].failed++;
+                });
+            }
+
+            availableMonths = Object.keys(statsByMonth).sort((a, b) => b.localeCompare(a));
+
+            if (availableMonths.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); font-style:italic">Awaiting initial diagnostics...</p>';
+                document.getElementById('prevMonthBtn').disabled = true;
+                document.getElementById('nextMonthBtn').disabled = true;
+                document.getElementById('monthTitle').innerText = "NO DATA";
+                document.getElementById('monthSubtitle').innerText = "---";
+                return;
+            }
+
+            if (currentMonthIndex >= availableMonths.length) currentMonthIndex = availableMonths.length - 1;
+            if (currentMonthIndex < 0) currentMonthIndex = 0;
+
+            const monthKey = availableMonths[currentMonthIndex];
+            const stat = statsByMonth[monthKey];
+            const [y, m] = monthKey.split('-');
+            const dateObj = new Date(y, m - 1);
+            const monthName = dateObj.toLocaleString('default', { month: 'long' });
+            
+            document.getElementById('monthTitle').innerText = monthName.toUpperCase();
+            document.getElementById('monthSubtitle').innerText = y;
+            
+            document.getElementById('prevMonthBtn').disabled = currentMonthIndex >= availableMonths.length - 1;
+            document.getElementById('nextMonthBtn').disabled = currentMonthIndex <= 0;
+
+            const percentage = stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0;
+
+            const card = document.createElement('div');
+            card.className = 'month-card';
+            card.style.marginBottom = '0';
+            card.innerHTML = `
+                <div class="month-header">
+                    <span>${monthName} Overview</span>
+                    <span>${percentage}% Efficiency</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="month-stats">
+                    <div class="stat-item">Tasks: <span>${stat.total}</span></div>
+                    <div class="stat-item">Success: <span>${stat.completed}</span></div>
+                    <div class="stat-item">Failed: <span>${stat.failed}</span></div>
+                </div>
+            `;
+            container.appendChild(card);
+            
+            setTimeout(() => {
+                card.querySelector('.progress-bar').style.width = `${percentage}%`;
+            }, 50);
+        }
+
+        document.getElementById('prevMonthBtn').addEventListener('click', () => {
+            if (currentMonthIndex < availableMonths.length - 1) {
+                currentMonthIndex++;
+                renderMonthlyReport();
+            }
+        });
+
+        document.getElementById('nextMonthBtn').addEventListener('click', () => {
+            if (currentMonthIndex > 0) {
+                currentMonthIndex--;
+                renderMonthlyReport();
+            }
+        });
+
+        const exportModal = document.getElementById('exportModal');
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const dates = Object.keys(trackerData).sort();
+            const today = getLocalDateString();
+            
+            if(dates.length > 0) {
+                document.getElementById('exportStart').value = dates[0];
+            } else {
+                document.getElementById('exportStart').value = today;
+            }
+            document.getElementById('exportEnd').value = today;
+            
+            exportModal.classList.add('active');
+        });
+
+        document.getElementById('closeExportModal').addEventListener('click', () => {
+            exportModal.classList.remove('active');
+        });
+
+        document.getElementById('confirmExportBtn').addEventListener('click', () => {
+            const start = document.getElementById('exportStart').value;
+            const end = document.getElementById('exportEnd').value;
+
+            if(!start || !end || start > end) {
+                alert("Invalid chronological boundaries.");
+                return;
+            }
+
+            generateAndDownloadMarkdown(start, end);
+            exportModal.classList.remove('active');
+        });
+
+        function generateAndDownloadMarkdown(startDate, endDate) {
+            const dates = Object.keys(trackerData).sort().filter(d => d >= startDate && d <= endDate);
+            
+            let md = `# System Log: Routine Tracker\n`;
+            md += `*Timeline Range: ${startDate} to ${endDate}*\n\n`;
+
+            let grandTotal = 0;
+            let grandCompleted = 0;
+            let grandFailed = 0;
+
+            dates.forEach(date => {
+                const tasks = trackerData[date];
+                md += `## ${date} (${formatDateDisplay(date)})\n`;
+                
+                tasks.forEach(t => {
+                    grandTotal++;
+                    let check = '[ ]';
+                    let suffix = '';
+                    if (t.status === 'completed') {
+                        check = '[x]';
+                        grandCompleted++;
+                    } else if (t.status === 'failed') {
+                        check = '[-]';
+                        suffix = ' *(Failed)*';
+                        grandFailed++;
+                    }
+                    md += `- ${check} ${t.text}${suffix}\n`;
+                });
+                md += `\n`;
+            });
+
+            md += `## --- Overall System Diagnostics ---\n`;
+            md += `- Total Activations: **${grandTotal}**\n`;
+            md += `- Successful Executions: **${grandCompleted}**\n`;
+            md += `- Failed Protocols: **${grandFailed}**\n`;
+            const eff = grandTotal > 0 ? Math.round((grandCompleted/(grandTotal-3))*100) : 0;
+            md += `- **System Efficiency: ${eff}%**\n`;
+
+            const blob = new Blob([md], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `HabitLog_${startDate}_to_${endDate}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        renderApp();
+        
+        window.addEventListener('focus', () => {
+            enforceMidnightCrossover();
+            const today = getLocalDateString();
+            if (currentViewDate > today) {
+                currentViewDate = today; 
+            }
+            renderApp();
+        });
+        
+    </script>
+</body>
+</html>
